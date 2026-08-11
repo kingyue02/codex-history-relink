@@ -16,7 +16,7 @@ jobs:
             artifact: CodexHistoryRelink-Windows-x64
             binary: dist/CodexHistoryRelink.exe
             output: CodexHistoryRelink-Windows-x64.exe
-          - os: macos-13
+          - os: macos-15-intel
             artifact: CodexHistoryRelink-macOS-x64
             binary: dist/CodexHistoryRelink
             output: CodexHistoryRelink-macOS-x64

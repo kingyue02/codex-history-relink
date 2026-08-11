@@ -212,7 +212,7 @@ class CoreTests(unittest.TestCase):
             selected = discover_database(home)
             self.assertEqual(
                 selected,
-                home / "sqlite" / "state_5.sqlite",
+                (home / "sqlite" / "state_5.sqlite").resolve(),
             )
 
         finally:
@@ -247,7 +247,7 @@ class CoreTests(unittest.TestCase):
 
             self.assertEqual(
                 selected,
-                root_db,
+                root_db.resolve(),
             )
 
     def test_rotation_keeps_five_across_state_versions(self):
