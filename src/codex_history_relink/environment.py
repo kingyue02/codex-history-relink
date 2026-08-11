@@ -103,4 +103,6 @@ def resolve_paths() -> CodexPaths:
         backups_dir=home / "history_sync_backups",
         logs_dir=home / "history_sync_logs",
         process_lock=home / ".history_relink.lock",
+        auth=home / "auth.json",
+        profiles_dir=home / "history_relink_profiles",
     )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from datetime import datetime
 from pathlib import Path
@@ -41,6 +42,12 @@ def manifest_backup_path(
 ) -> Path:
     return backup_path.with_name(
         backup_path.name + ".manifest.json"
+    )
+
+
+def auth_backup_path(backup_path: Path) -> Path:
+    return backup_path.with_name(
+        backup_path.name + ".auth.json"
     )
 
 
@@ -133,7 +140,18 @@ def create_backup(
     manifest = {
         "database": str(paths.database),
         "session_index_existed": index_existed,
+        "auth_existed": paths.auth.is_file(),
     }
+
+    if paths.auth.is_file():
+        atomic_write_bytes(
+            auth_backup_path(backup),
+            paths.auth.read_bytes(),
+        )
+        try:
+            os.chmod(auth_backup_path(backup), 0o600)
+        except OSError:
+            pass
 
     atomic_write_text(
         manifest_backup_path(backup),
@@ -217,10 +235,25 @@ def restore_backup(
             )
             restored_session_files += 1
 
+    saved_auth = auth_backup_path(backup_path)
+
+    if manifest.get("auth_existed"):
+        if saved_auth.exists():
+            atomic_write_bytes(
+                paths.auth,
+                saved_auth.read_bytes(),
+            )
+    else:
+        try:
+            paths.auth.unlink()
+        except FileNotFoundError:
+            pass
+
     return {
         "database_restored": True,
         "session_index_restored": restored_index,
         "session_files_restored": restored_session_files,
+        "auth_restored": bool(manifest.get("auth_existed")),
     }
 
 
@@ -267,6 +300,7 @@ def rotate_backups(
             session_index_backup_path(primary),
             session_meta_backup_path(primary),
             manifest_backup_path(primary),
+            auth_backup_path(primary),
         ]
 
         set_deleted = False

@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.1-rc1] - 2026-08-11
+
+### Added
+- Provider-neutral local authentication profiles storing the complete `auth.json`.
+- Two-stage first-time provider enrollment to prevent credential reuse across providers.
+- Automatic target authentication restoration on later provider switches.
+- Authentication backup and rollback as part of the history repair transaction.
+- Best-effort owner-only permissions for local authentication profile files.
+
+### Changed
+- Narrowed account-switching claims to APIs, providers, and login modes actually tested.
+- Documented per-platform runtime validation separately from CI build success.
+- RC tags are now published as GitHub Pre-releases.
 ## [0.3.0-rc1] - 2026-08-11
 
 Release candidate focused on distribution readiness.

@@ -1,13 +1,13 @@
 # Codex History Relink
 
-**Restore local Codex history after switching accounts, APIs, or providers — run it once.**
+**Restore local Codex history after switching APIs, providers, or login modes — run it once.**
 
 Codex History Relink is a one-shot repair utility for local Codex Desktop history visibility.
 
 It is intentionally simple:
 
 ```text
-Switch Codex account / API / provider
+Switch Codex API / provider / login mode
                 ↓
 Run CodexHistoryRelink
                 ↓
@@ -29,7 +29,7 @@ It does **not** transfer cloud conversations between accounts.
 ## Features
 
 - One-shot execution
-- No user input required
+- No command-line configuration required
 - No Python required for release binaries
 - Windows, macOS, and Linux core support
 - Automatically discovers `CODEX_HOME` or `~/.codex`
@@ -39,8 +39,9 @@ It does **not** transfer cloud conversations between accounts.
 - Uses DB + WAL activity to select the active state database
 - Dynamically detects any explicit `model_provider`
 - Uses built-in `openai` as the implicit default when `model_provider` is absent
-- Only rewrites `model_provider`
-- Preserves historical `model`
+- Rewrites only history Provider metadata and preserves historical `model`
+- Saves and restores the complete local `auth.json` per Provider
+- Never logs or uploads authentication contents
 - Backs up only when a real mismatch exists
 - Keeps the latest 5 successful backup sets
 - Uses atomic file replacement and busy-file retry
@@ -56,10 +57,18 @@ It does **not** transfer cloud conversations between accounts.
 
 ### End users
 
-1. Switch Codex to the target account / API / provider.
+1. Switch Codex to the target API, Provider, or login mode.
 2. Preferably close Codex or leave it idle.
 3. Run the binary once.
 4. Reopen or refresh Codex if the sidebar does not refresh immediately.
+
+The first time a target Provider has no saved authentication Profile, the utility pauses before changing history:
+
+1. The first run saves the source Provider's `auth.json` locally.
+2. Sign in to the target Provider in Codex.
+3. Run the utility again to save the target Profile and complete the relink.
+
+Later switches between enrolled Providers restore authentication and history automatically.
 
 Windows:
 
@@ -118,12 +127,12 @@ Old backups are deleted only after a new repair passes verification.
 
 Codex History Relink:
 
-- does not upload conversation history
-- does not send telemetry
-- does not read or migrate API keys
+- does not upload conversation history or authentication data
+- does not send telemetry or make network requests
+- copies the complete local `auth.json` only between local Provider Profiles
+- never writes authentication contents to logs
 - does not transfer cloud conversations
 - does not intentionally change historical model values
-- only touches local Codex history metadata needed for relinking
 
 See [SECURITY.md](SECURITY.md) for more detail.
 
@@ -132,8 +141,7 @@ See [SECURITY.md](SECURITY.md) for more detail.
 This utility is for:
 
 - switching Codex API providers
-- switching login mode
-- switching accounts where local history becomes hidden
+- switching login modes that change the active Provider identity
 - restoring visibility when local session files still exist
 
 It is not for:
@@ -169,7 +177,7 @@ bash scripts/build_unix.sh
 Tagging a version such as:
 
 ```text
-v0.3.0-rc1
+v0.3.1-rc1
 ```
 
 runs GitHub Actions on Windows, macOS Intel, macOS Apple Silicon, and Linux.
@@ -178,9 +186,18 @@ The release workflow produces native binaries and SHA256 checksums.
 
 ## Status
 
-`v0.3.0-rc1` is a release candidate.
+`v0.3.1-rc1` is a Pre-release.
 
-The core relink workflow has been validated in both directions between OpenAI login and a custom provider on a real Windows Codex Desktop environment.
+The core history relink workflow has been validated in both directions between OpenAI login and a custom Provider on a real Windows Codex Desktop environment. The new authentication Profile flow is covered by automated tests and is being released for RC real-device validation. Official account A → official account B is not currently claimed as validated.
+
+Runtime validation:
+
+- ✅ Windows x64: core history relink validated on a real device; authentication Profile fix awaiting RC feedback
+- ⚠ macOS Intel: CI build passed, awaiting real-device validation
+- ⚠ macOS Apple Silicon: CI build passed, awaiting real-device validation
+- ⚠ Linux x64: CI build passed, awaiting real-device validation
+
+A successful CI build confirms packaging, tests, and binary creation; it does not by itself confirm behavior in a real Codex Desktop environment.
 
 ## License
 

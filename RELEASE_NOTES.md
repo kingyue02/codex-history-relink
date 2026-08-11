@@ -1,25 +1,30 @@
-# Codex History Relink v0.3.0-rc1
+# Codex History Relink v0.3.1-rc1
 
-Release candidate for public testing.
+Release candidate fixing authentication state when switching Codex providers.
 
-## What it does
+## What changed
 
-After switching Codex account / API / provider:
+- Saves the complete local `auth.json` as a provider-specific local profile.
+- Restores the target provider authentication profile together with history metadata.
+- Uses a two-stage login flow the first time a provider has no saved profile.
+- Includes active authentication state in automatic repair rollback.
+- Never logs or uploads authentication contents.
 
-1. Run the appropriate `CodexHistoryRelink` binary once.
-2. The tool detects the active provider.
-3. It relinks local history metadata.
-4. It verifies the result and exits.
+## First-time provider setup
 
-No GUI and no configuration are required.
+When switching from provider A to provider B for the first time:
 
-## Tested
+1. Run the utility. It saves A's authentication locally and asks for B login.
+2. Sign in to provider B in Codex.
+3. Run the utility again to save B's profile and relink history.
 
-Verified on Windows with both directions:
+Later A/B switches can restore both authentication and local history automatically.
 
-- OpenAI login -> custom provider
-- custom provider -> OpenAI login
+## Validation
 
-## Important
+- Windows x64: core history relink validated on a real device; authentication Profile fix passed automated tests and awaits RC feedback.
+- macOS Intel: CI build passed; awaiting real-device validation.
+- macOS Apple Silicon: CI build passed; awaiting real-device validation.
+- Linux x64: CI build passed; awaiting real-device validation.
 
-This is a release candidate. Keep local backups and report sanitized logs when testing on additional systems.
+This is a Pre-release. Keep local backups and report only sanitized logs.

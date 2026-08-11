@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from codex_history_relink.auth_profiles import profile_auth_path, save_profile
 from codex_history_relink.backup import rotate_backups
 from codex_history_relink.environment import (
     discover_database,
@@ -360,6 +361,110 @@ class CoreTests(unittest.TestCase):
         finally:
             tmp.cleanup()
 
+    def test_matching_provider_captures_auth_profile(self):
+        tmp, home = self.make_home('model_provider = "old-provider"')
+
+        try:
+            (home / "auth.json").write_bytes(b'{"token":"old-secret"}')
+
+            with mock.patch.dict(os.environ, {"CODEX_HOME": str(home)}, clear=False):
+                paths = resolve_paths()
+                result = relink(paths)
+
+                self.assertFalse(result["changed"])
+                self.assertEqual(result["auth_profile"], "captured")
+                self.assertEqual(
+                    profile_auth_path(paths, "old-provider").read_bytes(),
+                    b'{"token":"old-secret"}',
+                )
+
+        finally:
+            tmp.cleanup()
+
+    def test_first_switch_requires_target_login_then_relinks(self):
+        tmp, home = self.make_home('model_provider = "new-provider"')
+
+        try:
+            (home / "auth.json").write_bytes(b'{"token":"old-secret"}')
+
+            with mock.patch.dict(os.environ, {"CODEX_HOME": str(home)}, clear=False):
+                paths = resolve_paths()
+                first = relink(paths)
+
+                self.assertTrue(first["login_required"])
+                self.assertFalse(first["changed"])
+                self.assertFalse(paths.auth.exists())
+                self.assertEqual(
+                    profile_auth_path(paths, "old-provider").read_bytes(),
+                    b'{"token":"old-secret"}',
+                )
+
+                paths.auth.write_bytes(b'{"token":"new-secret"}')
+                second = relink(paths)
+
+                self.assertTrue(second["changed"])
+                self.assertTrue(second["verified"])
+                self.assertEqual(paths.auth.read_bytes(), b'{"token":"new-secret"}')
+                self.assertEqual(
+                    profile_auth_path(paths, "new-provider").read_bytes(),
+                    b'{"token":"new-secret"}',
+                )
+
+        finally:
+            tmp.cleanup()
+
+    def test_reverse_switch_restores_saved_target_auth(self):
+        tmp, home = self.make_home('model_provider = "old-provider"')
+
+        try:
+            (home / "config.toml").write_text(
+                'model_provider = "new-provider"\n', encoding="utf-8"
+            )
+            (home / "auth.json").write_bytes(b'{"token":"old-secret"}')
+
+            with mock.patch.dict(os.environ, {"CODEX_HOME": str(home)}, clear=False):
+                paths = resolve_paths()
+                self.assertTrue(relink(paths)["login_required"])
+                paths.auth.write_bytes(b'{"token":"new-secret"}')
+                self.assertTrue(relink(paths)["verified"])
+
+                (home / "config.toml").write_text(
+                    'model_provider = "old-provider"\n', encoding="utf-8"
+                )
+                reverse = relink(paths)
+
+                self.assertTrue(reverse["verified"])
+                self.assertEqual(reverse["auth_profile"], "restored")
+                self.assertEqual(paths.auth.read_bytes(), b'{"token":"old-secret"}')
+
+        finally:
+            tmp.cleanup()
+
+    def test_failure_rolls_auth_back_with_history(self):
+        tmp, home = self.make_home('model_provider = "new-provider"')
+
+        try:
+            (home / "auth.json").write_bytes(b'{"token":"old-secret"}')
+
+            with mock.patch.dict(os.environ, {"CODEX_HOME": str(home)}, clear=False):
+                paths = resolve_paths()
+                save_profile(paths, "new-provider", b'{"token":"new-secret"}')
+
+                with mock.patch(
+                    "codex_history_relink.relink.rewrite_provider",
+                    side_effect=RuntimeError("simulated session write failure"),
+                ):
+                    with self.assertRaises(RuntimeError):
+                        relink(paths)
+
+                self.assertEqual(paths.auth.read_bytes(), b'{"token":"old-secret"}')
+                self.assertEqual(
+                    profile_auth_path(paths, "old-provider").read_bytes(),
+                    b'{"token":"old-secret"}',
+                )
+
+        finally:
+            tmp.cleanup()
 
 if __name__ == "__main__":
     unittest.main()

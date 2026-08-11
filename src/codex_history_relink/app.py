@@ -68,6 +68,12 @@ def main() -> int:
             )
             return 2
 
+        if result.get("login_required"):
+            _console_print(
+                str(result.get("message", "Target login required."))
+            )
+            return 3
+
         if result.get("changed"):
             _console_print(
                 "Codex history relink completed successfully."

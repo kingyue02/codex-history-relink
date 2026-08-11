@@ -14,6 +14,8 @@ class CodexPaths:
     backups_dir: Path
     logs_dir: Path
     process_lock: Path
+    auth: Path
+    profiles_dir: Path
 
 
 @dataclass(frozen=True)
