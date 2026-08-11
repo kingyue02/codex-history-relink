@@ -1,0 +1,102 @@
+name: build-native-binaries
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: CodexHistoryRelink-Windows-x64
+            binary: dist/CodexHistoryRelink.exe
+            output: CodexHistoryRelink-Windows-x64.exe
+          - os: macos-13
+            artifact: CodexHistoryRelink-macOS-x64
+            binary: dist/CodexHistoryRelink
+            output: CodexHistoryRelink-macOS-x64
+          - os: macos-14
+            artifact: CodexHistoryRelink-macOS-arm64
+            binary: dist/CodexHistoryRelink
+            output: CodexHistoryRelink-macOS-arm64
+          - os: ubuntu-latest
+            artifact: CodexHistoryRelink-Linux-x64
+            binary: dist/CodexHistoryRelink
+            output: CodexHistoryRelink-Linux-x64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: python -m pip install pyinstaller .
+
+      - name: Test
+        run: python -m unittest discover -s tests -v
+
+      - name: Build
+        shell: bash
+        env:
+          CODEX_HISTORY_RELINK_BUILD_COMMIT: ${{ github.sha }}
+          CODEX_HISTORY_RELINK_BUILD_TAG: ${{ github.ref_name }}
+        run: |
+          python -m PyInstaller \
+            --clean \
+            --onefile \
+            --name CodexHistoryRelink \
+            --paths src \
+            run_relink.py
+
+      - name: Rename artifact
+        shell: bash
+        run: |
+          mkdir -p release
+          cp "${{ matrix.binary }}" "release/${{ matrix.output }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: release/${{ matrix.output }}
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Collect files
+        shell: bash
+        run: |
+          mkdir release
+          find artifacts -type f -maxdepth 2 -exec cp {} release/ \;
+          cp RELEASE_NOTES.md release/RELEASE_NOTES.md
+          cd release
+          sha256sum CodexHistoryRelink-* > SHA256SUMS.txt
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          body_path: RELEASE_NOTES.md
+          files: |
+            release/CodexHistoryRelink-Windows-x64.exe
+            release/CodexHistoryRelink-macOS-x64
+            release/CodexHistoryRelink-macOS-arm64
+            release/CodexHistoryRelink-Linux-x64
+            release/SHA256SUMS.txt

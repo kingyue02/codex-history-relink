@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codex-history-relink"
+version = "0.3.0rc1"
+description = "One-shot local Codex history relinker after provider/login switching."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+  "tomli>=2.0.1; python_version < '3.11'"
+]
+
+[project.scripts]
+codex-history-relink = "codex_history_relink.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
