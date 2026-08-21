@@ -1,6 +1,13 @@
-# Codex History Relink v0.4.1-rc1
+﻿# Codex History Relink v0.4.1-rc1
 
-这是基于一次完整手工实机验证后重新整理的最小版本。
+Windows-only one-shot utility for relinking local Codex history after switching APIs, providers, or login modes.
+
+切换 Codex API、Provider 或登录模式后，运行一次即可重新挂载本地历史记录。
+
+## 平台
+
+- Windows x64
+- 未提供 macOS 或 Linux 版本
 
 ## 已验证的核心机制
 
@@ -23,47 +30,33 @@
 - 聊天正文
 - `session_index.jsonl`
 
+## 下载
+
+在 GitHub 的 Releases 页面下载 `CodexHistoryRelink-Windows-x64.exe`。
+
 ## 使用
 
 建议先关闭 Codex Desktop。
 
-查看状态：
-
 ```powershell
-CodexHistoryRelink.exe --status
+.\CodexHistoryRelink-Windows-x64.exe --status
+.\CodexHistoryRelink-Windows-x64.exe --dry-run
+.\CodexHistoryRelink-Windows-x64.exe
 ```
 
-只扫描：
+默认读取 `%USERPROFILE%\.codex\config.toml` 顶层的 `model_provider`。也可以手动指定：
 
 ```powershell
-CodexHistoryRelink.exe --dry-run
-```
-
-执行迁移：
-
-```powershell
-CodexHistoryRelink.exe
-```
-
-默认读取 `%USERPROFILE%\.codex\config.toml` 顶层 `model_provider`。
-
-也可手动指定：
-
-```powershell
-CodexHistoryRelink.exe --provider OpenAI
+.\CodexHistoryRelink-Windows-x64.exe --provider OpenAI
 ```
 
 ## 备份
 
 每次真正修改前自动创建：
 
-`~/.codex/history_relink_backups/<时间>-to-<Provider>/`
+`%USERPROFILE%\.codex\history_relink_backups\<时间>-to-<Provider>\`
 
-包含：
-
-- SQLite 一致性备份
-- 本次真正要修改的完整 rollout 文件
-- `manifest.json`
+其中包括 SQLite 一致性备份、本次将修改的 rollout 文件和 `manifest.json`。
 
 ## 验证标准
 
@@ -81,6 +74,3 @@ CodexHistoryRelink.exe --provider OpenAI
 ```powershell
 python -m unittest discover -s tests -v
 ```
-
-开发环境也可以直接运行 `python .\codex_history_relink.py`。Release 页面提供
-Windows x64、macOS Intel、macOS Apple Silicon 和 Linux x64 二进制文件。
