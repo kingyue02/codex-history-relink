@@ -1,30 +1,14 @@
-# Codex History Relink v0.3.1-rc1
+# Codex History Relink v0.4.1-rc1
 
-Release candidate fixing authentication state when switching Codex providers.
+基于完整手工实机验证重新整理的最小 Release Candidate。
 
-## What changed
+本版本仅同步三个经过验证的 Provider 元数据位置：
 
-- Saves the complete local `auth.json` as a provider-specific local profile.
-- Restores the target provider authentication profile together with history metadata.
-- Uses a two-stage login flow the first time a provider has no saved profile.
-- Includes active authentication state in automatic repair rollback.
-- Never logs or uploads authentication contents.
+1. SQLite `threads.model_provider`
+2. rollout `session_meta.payload.model_provider`
+3. rollout `thread_settings_applied.payload.thread_settings.model_provider_id`
 
-## First-time provider setup
+明确不修改 `config.toml`、`auth.json`、API Key、`base_url`、模型、工作目录、
+thread id、聊天正文或 `session_index.jsonl`。
 
-When switching from provider A to provider B for the first time:
-
-1. Run the utility. It saves A's authentication locally and asks for B login.
-2. Sign in to provider B in Codex.
-3. Run the utility again to save B's profile and relink history.
-
-Later A/B switches can restore both authentication and local history automatically.
-
-## Validation
-
-- Windows x64: core history relink validated on a real device; authentication Profile fix passed automated tests and awaits RC feedback.
-- macOS Intel: CI build passed; awaiting real-device validation.
-- macOS Apple Silicon: CI build passed; awaiting real-device validation.
-- Linux x64: CI build passed; awaiting real-device validation.
-
-This is a Pre-release. Keep local backups and report only sanitized logs.
+这是 Pre-release，请先使用 `--status` 或 `--dry-run` 检查，再执行正式迁移。
